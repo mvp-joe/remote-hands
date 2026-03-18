@@ -105,6 +105,14 @@ func (m *mockWorkerClient) GitDiff(ctx context.Context, req *connect.Request[wor
 	return nil, errors.New("not implemented")
 }
 
+func (m *mockWorkerClient) GitClone(context.Context, *connect.Request[workerv1.GitCloneRequest]) (*connect.Response[workerv1.GitCloneResponse], error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *mockWorkerClient) GitPush(context.Context, *connect.Request[workerv1.GitPushRequest]) (*connect.Response[workerv1.GitPushResponse], error) {
+	return nil, errors.New("not implemented")
+}
+
 func (m *mockWorkerClient) BrowserStart(context.Context, *connect.Request[workerv1.BrowserStartRequest]) (*connect.Response[workerv1.BrowserStartResponse], error) {
 	return nil, errors.New("not implemented")
 }

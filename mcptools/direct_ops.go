@@ -190,6 +190,31 @@ func (d *DirectOps) GitCommit(ctx context.Context, message string, files []strin
 	return resp.Msg.CommitSha, nil
 }
 
+func (d *DirectOps) GitClone(ctx context.Context, repoURL, localPath, branch string) (string, error) {
+	resp, err := d.client.GitClone(ctx, connect.NewRequest(&workerv1.GitCloneRequest{
+		RepoUrl:   repoURL,
+		LocalPath: localPath,
+		Branch:    branch,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("git clone: %w", err)
+	}
+	return resp.Msg.CommitSha, nil
+}
+
+func (d *DirectOps) GitPush(ctx context.Context, repoPath, remote, branch string, force bool) error {
+	_, err := d.client.GitPush(ctx, connect.NewRequest(&workerv1.GitPushRequest{
+		RepoPath: repoPath,
+		Remote:   remote,
+		Branch:   branch,
+		Force:    force,
+	}))
+	if err != nil {
+		return fmt.Errorf("git push: %w", err)
+	}
+	return nil
+}
+
 // ============================================================================
 // Browser operations
 // ============================================================================

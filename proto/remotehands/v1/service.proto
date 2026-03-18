@@ -1,0 +1,495 @@
+syntax = "proto3";
+
+package remotehands.v1;
+
+option go_package = "github.com/mvp-joe/remote-hands/gen/remotehands/v1;remotehandsv1";
+
+// Service provides remote execution and file management operations.
+service Service {
+  // File operations
+  rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
+  rpc WriteFile(WriteFileRequest) returns (Empty);
+  rpc DeleteFile(DeleteFileRequest) returns (Empty);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc Glob(GlobRequest) returns (GlobResponse);
+  rpc Grep(GrepRequest) returns (GrepResponse);
+
+  // Bash execution (server-streaming)
+  rpc RunBash(RunBashRequest) returns (stream RunBashEvent);
+
+  // Git operations (exec.Command-based)
+  rpc GitStatus(GitStatusRequest) returns (GitStatusResponse);
+  rpc GitDiff(GitDiffRequest) returns (GitDiffResponse);
+  rpc GitCommit(GitCommitRequest) returns (GitCommitResponse);
+
+  // Git operations (go-git, in-memory auth)
+  rpc GitClone(GitCloneRequest) returns (GitCloneResponse);
+  rpc GitPush(GitPushRequest) returns (GitPushResponse);
+
+  // File watching (server-streaming)
+  rpc WatchFiles(WatchFilesRequest) returns (stream FileEvent);
+
+  // Browser automation
+  rpc BrowserStart(BrowserStartRequest) returns (BrowserStartResponse);
+  rpc BrowserStop(BrowserStopRequest) returns (BrowserStopResponse);
+  rpc BrowserNavigate(BrowserNavigateRequest) returns (BrowserNavigateResponse);
+  rpc BrowserListPages(BrowserListPagesRequest) returns (BrowserListPagesResponse);
+  rpc BrowserClosePage(BrowserClosePageRequest) returns (BrowserClosePageResponse);
+  rpc BrowserScreenshot(BrowserScreenshotRequest) returns (BrowserScreenshotResponse);
+  rpc BrowserSnapshot(BrowserSnapshotRequest) returns (BrowserSnapshotResponse);
+  rpc BrowserAct(BrowserActRequest) returns (BrowserActResponse);
+
+  // HTTP operations
+  rpc HttpRequest(HttpRequestRequest) returns (HttpRequestResponse);
+  rpc HttpClearCookies(HttpClearCookiesRequest) returns (HttpClearCookiesResponse);
+
+  // gRPC proxying
+  rpc GrpcRequest(GrpcRequestRequest) returns (GrpcRequestResponse);
+
+  // Process management
+  rpc ProcessStart(ProcessStartRequest) returns (ProcessStartResponse);
+  rpc ProcessStop(ProcessStopRequest) returns (ProcessStopResponse);
+  rpc ProcessList(ProcessListRequest) returns (ProcessListResponse);
+  rpc ProcessLogs(ProcessLogsRequest) returns (ProcessLogsResponse);
+  rpc ProcessTail(ProcessTailRequest) returns (stream ProcessTailEvent);
+}
+
+// Empty is a shared empty response message.
+message Empty {}
+
+// =============================================================================
+// File operations
+// =============================================================================
+
+message ReadFileRequest {
+  string path = 1;
+  int64 offset = 2;
+  int64 limit = 3;
+}
+
+message ReadFileResponse {
+  bytes content = 1;
+}
+
+message WriteFileRequest {
+  string path = 1;
+  bytes content = 2;
+  int32 mode = 3;
+}
+
+message DeleteFileRequest {
+  string path = 1;
+  bool recursive = 2;
+}
+
+message ListFilesRequest {
+  string path = 1;
+  bool recursive = 2;
+}
+
+message ListFilesResponse {
+  repeated FileEntry files = 1;
+}
+
+message FileEntry {
+  string path = 1;
+  string type = 2;
+  int64 size = 3;
+  int64 modified_at = 4;
+  string mode = 5;
+}
+
+message GlobRequest {
+  string pattern = 1;
+  string path = 2;
+}
+
+message GlobResponse {
+  repeated string matches = 1;
+}
+
+message GrepRequest {
+  string pattern = 1;
+  string path = 2;
+  string glob = 3;
+  bool ignore_case = 4;
+  int32 context_lines = 5;
+}
+
+message GrepResponse {
+  repeated GrepMatch matches = 1;
+}
+
+message GrepMatch {
+  string path = 1;
+  int32 line = 2;
+  string content = 3;
+  repeated string context_before = 4;
+  repeated string context_after = 5;
+}
+
+// =============================================================================
+// Bash execution
+// =============================================================================
+
+message RunBashRequest {
+  string command = 1;
+  int32 timeout_ms = 2;
+  map<string, string> env = 3;
+  string working_dir = 4;
+}
+
+message RunBashEvent {
+  oneof event {
+    string stdout = 1;
+    string stderr = 2;
+    int32 exit_code = 3;
+  }
+}
+
+// =============================================================================
+// Git operations
+// =============================================================================
+
+message GitStatusRequest {
+  string path = 1;
+}
+
+message GitStatusResponse {
+  repeated GitFileStatus files = 1;
+}
+
+message GitFileStatus {
+  string path = 1;
+  string status = 2;
+}
+
+message GitDiffRequest {
+  string path = 1;
+  bool staged = 2;
+}
+
+message GitDiffResponse {
+  string diff = 1;
+}
+
+message GitCommitRequest {
+  string message = 1;
+  repeated string files = 2;
+}
+
+message GitCommitResponse {
+  string commit_sha = 1;
+}
+
+message GitCloneRequest {
+  string repo_url = 1;
+  string local_path = 2;
+  string branch = 3;
+}
+
+message GitCloneResponse {
+  string commit_sha = 1;
+}
+
+message GitPushRequest {
+  string repo_path = 1;
+  string remote = 2;
+  string branch = 3;
+  bool force = 4;
+}
+
+message GitPushResponse {}
+
+// =============================================================================
+// File watching
+// =============================================================================
+
+message WatchFilesRequest {
+  repeated string patterns = 1;
+}
+
+message FileEvent {
+  string path = 1;
+  string event_type = 2;
+}
+
+// =============================================================================
+// Browser automation
+// =============================================================================
+
+message BrowserStartRequest {}
+message BrowserStartResponse {}
+
+message BrowserStopRequest {}
+message BrowserStopResponse {}
+
+message BrowserNavigateRequest {
+  string url = 1;
+  optional string page_id = 2;
+}
+
+message BrowserNavigateResponse {
+  string page_id = 1;
+  string url = 2;
+  string title = 3;
+}
+
+message BrowserListPagesRequest {}
+
+message BrowserListPagesResponse {
+  repeated PageInfo pages = 1;
+}
+
+message PageInfo {
+  string page_id = 1;
+  string url = 2;
+  string title = 3;
+}
+
+message BrowserClosePageRequest {
+  string page_id = 1;
+}
+
+message BrowserClosePageResponse {}
+
+enum ScreenshotFormat {
+  SCREENSHOT_FORMAT_UNSPECIFIED = 0;
+  SCREENSHOT_FORMAT_PNG = 1;
+  SCREENSHOT_FORMAT_JPEG = 2;
+  SCREENSHOT_FORMAT_WEBP = 3;
+}
+
+message BrowserScreenshotRequest {
+  optional string page_id = 1;
+  ScreenshotFormat format = 2;
+  bool full_page = 3;
+  optional string selector = 4;
+  optional int32 quality = 5;
+}
+
+message BrowserScreenshotResponse {
+  bytes image = 1;
+  string content_type = 2;
+}
+
+enum SnapshotType {
+  SNAPSHOT_TYPE_UNSPECIFIED = 0;
+  SNAPSHOT_TYPE_DOM = 1;
+  SNAPSHOT_TYPE_ACCESSIBILITY = 2;
+}
+
+message BrowserSnapshotRequest {
+  optional string page_id = 1;
+  repeated SnapshotType types = 2;
+  bool include_bounds = 3;
+}
+
+message BrowserSnapshotResponse {
+  optional string dom_html = 1;
+  AccessibilityNode accessibility_tree = 2;
+  optional string snapshot_id = 3;
+}
+
+message AccessibilityNode {
+  string ref = 1;
+  string role = 2;
+  string name = 3;
+  optional string description = 4;
+  optional string value = 5;
+  repeated AccessibilityNode children = 6;
+  BoundingBox bounds = 7;
+}
+
+message BoundingBox {
+  double x = 1;
+  double y = 2;
+  double width = 3;
+  double height = 4;
+}
+
+enum BrowserActionType {
+  BROWSER_ACTION_UNSPECIFIED = 0;
+  BROWSER_ACTION_CLICK = 1;
+  BROWSER_ACTION_FILL = 2;
+  BROWSER_ACTION_TYPE = 3;
+  BROWSER_ACTION_PRESS = 4;
+  BROWSER_ACTION_SELECT_OPTION = 5;
+  BROWSER_ACTION_CHECK = 6;
+  BROWSER_ACTION_UNCHECK = 7;
+  BROWSER_ACTION_HOVER = 8;
+  BROWSER_ACTION_SCROLL = 9;
+  BROWSER_ACTION_FOCUS = 10;
+  BROWSER_ACTION_EVALUATE = 11;
+  BROWSER_ACTION_WAIT_FOR_SELECTOR = 12;
+}
+
+enum MouseButton {
+  MOUSE_BUTTON_UNSPECIFIED = 0;
+  MOUSE_BUTTON_LEFT = 1;
+  MOUSE_BUTTON_RIGHT = 2;
+  MOUSE_BUTTON_MIDDLE = 3;
+}
+
+enum Modifier {
+  MODIFIER_UNSPECIFIED = 0;
+  MODIFIER_ALT = 1;
+  MODIFIER_CONTROL = 2;
+  MODIFIER_META = 3;
+  MODIFIER_SHIFT = 4;
+}
+
+enum WaitForState {
+  WAIT_FOR_STATE_UNSPECIFIED = 0;
+  WAIT_FOR_STATE_VISIBLE = 1;
+  WAIT_FOR_STATE_HIDDEN = 2;
+  WAIT_FOR_STATE_ATTACHED = 3;
+  WAIT_FOR_STATE_DETACHED = 4;
+}
+
+message BrowserAction {
+  BrowserActionType type = 1;
+  optional string selector = 2;
+  optional string value = 3;
+  optional int32 delay_ms = 4;
+  repeated string values = 5;
+  optional MouseButton button = 6;
+  optional int32 click_count = 7;
+  repeated Modifier modifiers = 8;
+  optional double scroll_x = 9;
+  optional double scroll_y = 10;
+  optional WaitForState wait_state = 11;
+  optional int32 timeout_ms = 12;
+}
+
+message BrowserActRequest {
+  optional string page_id = 1;
+  repeated BrowserAction actions = 2;
+}
+
+message BrowserActResponse {
+  repeated BrowserActionResult results = 1;
+}
+
+message BrowserActionResult {
+  bool success = 1;
+  optional string error = 2;
+  optional string value = 3;
+}
+
+// =============================================================================
+// HTTP operations
+// =============================================================================
+
+message HttpHeader {
+  string name = 1;
+  string value = 2;
+}
+
+message HttpRequestRequest {
+  string method = 1;
+  string url = 2;
+  repeated HttpHeader headers = 3;
+  bytes body = 4;
+  bool follow_redirects = 5;
+  optional int32 timeout_ms = 6;
+  bool clear_cookies = 7;
+}
+
+message HttpRequestResponse {
+  int32 status_code = 1;
+  repeated HttpHeader headers = 2;
+  bytes body = 3;
+  int64 duration_ms = 4;
+}
+
+message HttpClearCookiesRequest {}
+message HttpClearCookiesResponse {}
+
+// =============================================================================
+// gRPC proxying
+// =============================================================================
+
+message GrpcMetadata {
+  string key = 1;
+  string value = 2;
+}
+
+message GrpcRequestRequest {
+  string address = 1;
+  string method = 2;
+  optional string body = 3;
+  repeated GrpcMetadata metadata = 4;
+  optional string proto_file = 5;
+  bool use_reflection = 6;
+}
+
+message GrpcRequestResponse {
+  string response_body = 1;
+  repeated GrpcMetadata metadata = 2;
+  int32 status_code = 3;
+  string status_message = 4;
+}
+
+// =============================================================================
+// Process management
+// =============================================================================
+
+message ProcessStartRequest {
+  string command = 1;
+  string name = 2;
+  map<string, string> env = 3;
+  string working_dir = 4;
+}
+
+message ProcessStartResponse {
+  int32 pid = 1;
+}
+
+message ProcessStopRequest {
+  int32 pid = 1;
+}
+
+message ProcessStopResponse {}
+
+message ProcessListRequest {
+  bool include_exited = 1;
+}
+
+message ProcessListResponse {
+  repeated ProcessInfo processes = 1;
+}
+
+message ProcessInfo {
+  int32 pid = 1;
+  string name = 2;
+  string command = 3;
+  string working_dir = 4;
+  string status = 5;
+  optional int32 exit_code = 6;
+  int64 started_at = 7;
+  optional int64 exited_at = 8;
+}
+
+message ProcessLogsRequest {
+  int32 pid = 1;
+  int32 head = 2;
+  int32 tail = 3;
+}
+
+message ProcessLogsResponse {
+  string stdout = 1;
+  string stderr = 2;
+}
+
+message ProcessTailRequest {
+  int32 pid = 1;
+}
+
+message ProcessTailEvent {
+  oneof event {
+    string stdout = 1;
+    string stderr = 2;
+    int32 exit_code = 3;
+  }
+}

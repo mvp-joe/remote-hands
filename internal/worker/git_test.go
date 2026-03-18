@@ -711,6 +711,101 @@ A  added.txt
 	}
 }
 
+// =============================================================================
+// GitClone / GitPush Tests (go-git)
+// =============================================================================
+
+func TestGitClone_InvalidSSHKey(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewServiceWithGitAuth(t.TempDir(), nil, "not-a-valid-pem-key", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "parse SSH key")
+}
+
+func TestGitClone_NoAuth_LocalRepo(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	// Create a local bare repo to clone from.
+	bareDir := t.TempDir()
+	cmd := exec.Command("git", "init", "--bare")
+	cmd.Dir = bareDir
+	require.NoError(t, cmd.Run())
+
+	// Create a working repo, add a commit, push to the bare repo.
+	workDir := t.TempDir()
+	initGitRepo(t, workDir)
+	require.NoError(t, os.WriteFile(filepath.Join(workDir, "hello.txt"), []byte("hello"), 0644))
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = workDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "commit", "-m", "init")
+	cmd.Dir = workDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "remote", "add", "origin", bareDir)
+	cmd.Dir = workDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "push", "origin", "master")
+	cmd.Dir = workDir
+	require.NoError(t, cmd.Run())
+
+	// Now clone the bare repo using our service.
+	homeDir := t.TempDir()
+	svc, err := NewServiceWithGitAuth(homeDir, nil, "", "")
+	require.NoError(t, err)
+
+	sha, err := svc.gitClone(ctx, bareDir, "cloned", "")
+	require.NoError(t, err)
+	assert.Len(t, sha, 40)
+
+	// Verify the cloned file exists.
+	content, err := os.ReadFile(filepath.Join(homeDir, "cloned", "hello.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "hello", string(content))
+}
+
+func TestGitPush_LocalRemote(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	// Create a local bare repo.
+	bareDir := t.TempDir()
+	cmd := exec.Command("git", "init", "--bare")
+	cmd.Dir = bareDir
+	require.NoError(t, cmd.Run())
+
+	// Create a working repo, add a commit, push to the bare repo.
+	homeDir := t.TempDir()
+	workDir := filepath.Join(homeDir, "repo")
+	require.NoError(t, os.MkdirAll(workDir, 0o755))
+	initGitRepo(t, workDir)
+	require.NoError(t, os.WriteFile(filepath.Join(workDir, "hello.txt"), []byte("hello"), 0644))
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = workDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "commit", "-m", "init")
+	cmd.Dir = workDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "remote", "add", "origin", bareDir)
+	cmd.Dir = workDir
+	require.NoError(t, cmd.Run())
+
+	// Push using our service.
+	svc, err := NewServiceWithGitAuth(homeDir, nil, "", "")
+	require.NoError(t, err)
+
+	err = svc.gitPush(ctx, "repo", "origin", "master", false)
+	require.NoError(t, err)
+
+	// Verify the bare repo has the commit.
+	cmd = exec.Command("git", "log", "--oneline")
+	cmd.Dir = bareDir
+	output, err := cmd.Output()
+	require.NoError(t, err)
+	assert.Contains(t, string(output), "init")
+}
+
 func TestMapGitStatus(t *testing.T) {
 	t.Parallel()
 

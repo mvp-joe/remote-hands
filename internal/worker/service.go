@@ -6,6 +6,8 @@ import (
 	"log/slog"
 
 	"connectrpc.com/connect"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+
 	remotehandsv1 "github.com/mvp-joe/remote-hands/gen/remotehands/v1"
 	"github.com/mvp-joe/remote-hands/gen/remotehands/v1/remotehandsv1connect"
 )
@@ -19,6 +21,10 @@ type Service struct {
 	browser    *BrowserManager
 	httpClient *HttpClient
 	process    *ProcessManager
+
+	// go-git auth — set via NewServiceWithGitAuth, used only by GitClone/GitPush
+	gitSSHAuth   transport.AuthMethod
+	gitHTTPSAuth transport.AuthMethod
 }
 
 // NewService creates a new Service with the given home directory.
@@ -181,6 +187,33 @@ func (s *Service) GitCommit(
 	return connect.NewResponse(&remotehandsv1.GitCommitResponse{
 		CommitSha: sha,
 	}), nil
+}
+
+// GitClone clones a remote repository into a path under homeDir.
+func (s *Service) GitClone(
+	ctx context.Context,
+	req *connect.Request[remotehandsv1.GitCloneRequest],
+) (*connect.Response[remotehandsv1.GitCloneResponse], error) {
+	sha, err := s.gitClone(ctx, req.Msg.RepoUrl, req.Msg.LocalPath, req.Msg.Branch)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&remotehandsv1.GitCloneResponse{
+		CommitSha: sha,
+	}), nil
+}
+
+// GitPush pushes a local repository's branch to the remote.
+func (s *Service) GitPush(
+	ctx context.Context,
+	req *connect.Request[remotehandsv1.GitPushRequest],
+) (*connect.Response[remotehandsv1.GitPushResponse], error) {
+	if err := s.gitPush(ctx, req.Msg.RepoPath, req.Msg.Remote, req.Msg.Branch, req.Msg.Force); err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&remotehandsv1.GitPushResponse{}), nil
 }
 
 // WatchFiles watches files matching glob patterns and streams file events.

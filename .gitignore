@@ -4,8 +4,8 @@
 *.dll
 *.so
 *.dylib
-remotehands
-remotehands-mcp
+/remotehands
+/remotehands-mcp
 
 # Test binary
 *.test

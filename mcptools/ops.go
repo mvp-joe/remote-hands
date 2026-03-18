@@ -36,6 +36,12 @@ type Ops interface {
 	// GitCommit creates a git commit with the given message and files.
 	GitCommit(ctx context.Context, message string, files []string) (string, error)
 
+	// GitClone clones a remote repository into a local path.
+	GitClone(ctx context.Context, repoURL, localPath, branch string) (string, error)
+
+	// GitPush pushes a local repository's branch to the remote.
+	GitPush(ctx context.Context, repoPath, remote, branch string, force bool) error
+
 	// Browser operations
 	BrowserStart(ctx context.Context) error
 	BrowserStop(ctx context.Context) error
