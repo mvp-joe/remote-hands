@@ -59,11 +59,8 @@ func (s *Service) runBash(
 	cmd := exec.Command("bash", "-c", command)
 	cmd.Dir = absWorkDir
 
-	// Set up process group for proper cleanup - this allows us to kill all
-	// child processes when the timeout is reached
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	// Set environment variables
+	// Set environment variables before the customizer so the customizer
+	// can override/replace the environment entirely if needed.
 	if len(env) > 0 {
 		// Start with current environment, then add custom vars
 		cmd.Env = cmd.Environ()
@@ -71,6 +68,19 @@ func (s *Service) runBash(
 			cmd.Env = append(cmd.Env, k+"="+v)
 		}
 	}
+
+	// Allow caller to customize the command (e.g. drop privileges, clear env).
+	if s.cmdCustomizer != nil {
+		s.cmdCustomizer(cmd)
+	}
+
+	// Always set up process group for proper cleanup - this allows us to kill
+	// all child processes when the timeout is reached. Applied after the
+	// customizer so Setpgid is always true regardless of what the customizer does.
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Setpgid = true
 
 	// Set up pipes for stdout and stderr
 	stdout, err := cmd.StdoutPipe()

@@ -64,13 +64,19 @@ type ProcessInfo struct {
 // ProcessManager manages long-running processes within the working directory.
 // All public methods are safe for concurrent use.
 type ProcessManager struct {
-	homeDir string
-	logDir  string
-	selfPID int32
-	logger  *slog.Logger
+	homeDir       string
+	logDir        string
+	selfPID       int32
+	logger        *slog.Logger
+	cmdCustomizer CmdCustomizer
 
 	mu        sync.Mutex
 	processes map[int32]*trackedProcess
+}
+
+// SetCmdCustomizer sets a callback invoked on every *exec.Cmd before Start.
+func (pm *ProcessManager) SetCmdCustomizer(fn CmdCustomizer) {
+	pm.cmdCustomizer = fn
 }
 
 // NewProcessManager creates a ProcessManager and ensures the log directory exists.
@@ -112,15 +118,25 @@ func (pm *ProcessManager) Start(
 
 	cmd := exec.Command("bash", "-c", command)
 	cmd.Dir = absWorkDir
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	// Merge env vars on top of the current environment.
+	// Merge env vars on top of the current environment before the customizer.
 	if len(env) > 0 {
 		cmd.Env = cmd.Environ()
 		for k, v := range env {
 			cmd.Env = append(cmd.Env, k+"="+v)
 		}
 	}
+
+	// Allow caller to customize the command (e.g. drop privileges, clear env).
+	if pm.cmdCustomizer != nil {
+		pm.cmdCustomizer(cmd)
+	}
+
+	// Always ensure process group is set for proper cleanup.
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Setpgid = true
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {

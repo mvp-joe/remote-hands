@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os/exec"
 
 	"connectrpc.com/connect"
 	"github.com/go-git/go-git/v5/plumbing/transport"
@@ -12,15 +13,25 @@ import (
 	"github.com/mvp-joe/remote-hands/gen/remotehands/v1/remotehandsv1connect"
 )
 
+// CmdCustomizer is called with every *exec.Cmd created for bash execution
+// (both RunBash and ProcessStart) before the command is started. Use it to
+// set SysProcAttr credentials, replace the environment, or apply any other
+// pre-start customization. The callback MUST NOT call cmd.Start().
+//
+// Note: runBash and ProcessManager always set SysProcAttr.Setpgid = true
+// after the customizer returns, so the customizer does not need to preserve it.
+type CmdCustomizer func(cmd *exec.Cmd)
+
 // Service implements the ServiceHandler interface.
 type Service struct {
 	remotehandsv1connect.UnimplementedServiceHandler
 
-	homeDir    string
-	logger     *slog.Logger
-	browser    *BrowserManager
-	httpClient *HttpClient
-	process    *ProcessManager
+	homeDir        string
+	logger         *slog.Logger
+	browser        *BrowserManager
+	httpClient     *HttpClient
+	process        *ProcessManager
+	cmdCustomizer  CmdCustomizer
 
 	// go-git auth — set via NewServiceWithGitAuth, used only by GitClone/GitPush
 	gitSSHAuth   transport.AuthMethod
@@ -42,6 +53,18 @@ func NewService(homeDir string, logger *slog.Logger) (*Service, error) {
 		httpClient: NewHttpClient(),
 		process:    pm,
 	}, nil
+}
+
+// SetCmdCustomizer sets a callback that is invoked on every *exec.Cmd created
+// for bash execution (RunBash and ProcessStart) before the command starts.
+// This allows the caller to drop privileges (e.g. set UID/GID via
+// SysProcAttr.Credential) or replace the environment for sandboxing.
+//
+// Setpgid is always re-applied after the customizer runs, so the customizer
+// does not need to preserve it.
+func (s *Service) SetCmdCustomizer(fn CmdCustomizer) {
+	s.cmdCustomizer = fn
+	s.process.SetCmdCustomizer(fn)
 }
 
 // ReadFile reads a file's content with optional offset and limit.

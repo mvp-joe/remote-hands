@@ -3,8 +3,10 @@ package worker
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -467,4 +469,105 @@ func TestService_RunBash_ContextCancelledBeforeStart(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, collector.hasExit)
 	assert.Equal(t, int32(ExitCodeTimeout), collector.exitCode)
+}
+
+// =============================================================================
+// CmdCustomizer Tests
+// =============================================================================
+
+func TestService_RunBash_CmdCustomizerSetsEnv(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, _ := newTestService(t)
+
+	// Use a customizer that replaces the environment entirely.
+	svc.SetCmdCustomizer(func(cmd *exec.Cmd) {
+		cmd.Env = []string{"SANDBOX_VAR=sandboxed", "PATH=/usr/bin:/bin"}
+	})
+
+	collector := &eventCollector{}
+	err := svc.runBash(ctx, "echo $SANDBOX_VAR", 0, nil, "", collector.send)
+	require.NoError(t, err)
+
+	assert.Equal(t, int32(0), collector.exitCode)
+	require.Len(t, collector.stdout, 1)
+	assert.Equal(t, "sandboxed", collector.stdout[0])
+}
+
+func TestService_RunBash_CmdCustomizerClearsInheritedEnv(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, _ := newTestService(t)
+
+	// Simulate the overwatch-agent pattern: clear env so parent vars are gone.
+	svc.SetCmdCustomizer(func(cmd *exec.Cmd) {
+		cmd.Env = []string{"HOME=/tmp", "PATH=/usr/bin:/bin"}
+	})
+
+	collector := &eventCollector{}
+	// HOME should be /tmp, not the real home
+	err := svc.runBash(ctx, "echo $HOME", 0, nil, "", collector.send)
+	require.NoError(t, err)
+
+	assert.Equal(t, int32(0), collector.exitCode)
+	require.Len(t, collector.stdout, 1)
+	assert.Equal(t, "/tmp", collector.stdout[0])
+}
+
+func TestService_RunBash_CmdCustomizerOverridesRequestEnv(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, _ := newTestService(t)
+
+	// Customizer replaces entire env — request-level env vars set before
+	// the customizer should be gone.
+	svc.SetCmdCustomizer(func(cmd *exec.Cmd) {
+		cmd.Env = []string{"PATH=/usr/bin:/bin"}
+	})
+
+	collector := &eventCollector{}
+	env := map[string]string{"MY_VAR": "should_be_gone"}
+	err := svc.runBash(ctx, "echo ${MY_VAR:-empty}", 0, env, "", collector.send)
+	require.NoError(t, err)
+
+	assert.Equal(t, int32(0), collector.exitCode)
+	require.Len(t, collector.stdout, 1)
+	assert.Equal(t, "empty", collector.stdout[0])
+}
+
+func TestService_RunBash_CmdCustomizerPreservesSetpgid(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, _ := newTestService(t)
+
+	// Customizer that sets SysProcAttr without Setpgid — Setpgid should
+	// still be applied by runBash after the customizer.
+	var capturedSysProcAttr *syscall.SysProcAttr
+	svc.SetCmdCustomizer(func(cmd *exec.Cmd) {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+		capturedSysProcAttr = cmd.SysProcAttr
+	})
+
+	collector := &eventCollector{}
+	err := svc.runBash(ctx, "echo test", 0, nil, "", collector.send)
+	require.NoError(t, err)
+
+	assert.Equal(t, int32(0), collector.exitCode)
+	// Verify Setpgid was re-applied after customizer
+	require.NotNil(t, capturedSysProcAttr)
+	assert.True(t, capturedSysProcAttr.Setpgid, "Setpgid should be true after customizer")
+}
+
+func TestService_RunBash_NilCmdCustomizerIsNoOp(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, _ := newTestService(t)
+
+	// No customizer set — should work exactly as before.
+	collector := &eventCollector{}
+	err := svc.runBash(ctx, "echo works", 0, nil, "", collector.send)
+	require.NoError(t, err)
+
+	assert.Equal(t, int32(0), collector.exitCode)
+	assert.Equal(t, []string{"works"}, collector.stdout)
 }
