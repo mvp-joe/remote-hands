@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/mvp-joe/remote-hands/gen/remotehands/v1/remotehandsv1connect"
-	"github.com/mvp-joe/remote-hands/internal/worker"
+	"github.com/mvp-joe/remote-hands/worker"
 )
 
 func main() {
