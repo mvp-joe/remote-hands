@@ -113,10 +113,10 @@
 
 ## Phase 11: Cleanup and Verification
 
-- [ ] Remove `"os/exec"` import from any git-related worker files (should be gone with git.go deletion)
-- [ ] Verify `git` binary is not referenced in worker package: `grep -r 'exec.Command.*"git"' worker/`
-- [ ] Run full test suite: `go test ./...`
-- [ ] Run build for both binaries: `go build ./cmd/remotehands && go build ./cmd/remotehands-mcp`
+- [x] Remove `"os/exec"` import from any git-related worker files (should be gone with git.go deletion)
+- [x] Verify `git` binary is not referenced in worker package: `grep -r 'exec.Command.*"git"' worker/`
+- [x] Run full test suite: `go test ./...`
+- [x] Run build for both binaries: `go build ./cmd/remotehands && go build ./cmd/remotehands-mcp`
 
 ## Notes
 
