@@ -1390,6 +1390,7 @@ type GitDiffRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	Staged        bool                   `protobuf:"varint,2,opt,name=staged,proto3" json:"staged,omitempty"`
+	FilePath      string                 `protobuf:"bytes,3,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1436,6 +1437,13 @@ func (x *GitDiffRequest) GetStaged() bool {
 		return x.Staged
 	}
 	return false
+}
+
+func (x *GitDiffRequest) GetFilePath() string {
+	if x != nil {
+		return x.FilePath
+	}
+	return ""
 }
 
 type GitDiffResponse struct {
@@ -1486,6 +1494,9 @@ type GitCommitRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	Files         []string               `protobuf:"bytes,2,rep,name=files,proto3" json:"files,omitempty"`
+	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	AuthorName    string                 `protobuf:"bytes,4,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
+	AuthorEmail   string                 `protobuf:"bytes,5,opt,name=author_email,json=authorEmail,proto3" json:"author_email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1532,6 +1543,27 @@ func (x *GitCommitRequest) GetFiles() []string {
 		return x.Files
 	}
 	return nil
+}
+
+func (x *GitCommitRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GitCommitRequest) GetAuthorName() string {
+	if x != nil {
+		return x.AuthorName
+	}
+	return ""
+}
+
+func (x *GitCommitRequest) GetAuthorEmail() string {
+	if x != nil {
+		return x.AuthorEmail
+	}
+	return ""
 }
 
 type GitCommitResponse struct {
@@ -4256,15 +4288,20 @@ const file_remotehands_v1_service_proto_rawDesc = "" +
 	"\x05files\x18\x01 \x03(\v2\x1d.remotehands.v1.GitFileStatusR\x05files\";\n" +
 	"\rGitFileStatus\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"<\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"Y\n" +
 	"\x0eGitDiffRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
-	"\x06staged\x18\x02 \x01(\bR\x06staged\"%\n" +
+	"\x06staged\x18\x02 \x01(\bR\x06staged\x12\x1b\n" +
+	"\tfile_path\x18\x03 \x01(\tR\bfilePath\"%\n" +
 	"\x0fGitDiffResponse\x12\x12\n" +
-	"\x04diff\x18\x01 \x01(\tR\x04diff\"B\n" +
+	"\x04diff\x18\x01 \x01(\tR\x04diff\"\x9a\x01\n" +
 	"\x10GitCommitRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12\x14\n" +
-	"\x05files\x18\x02 \x03(\tR\x05files\"2\n" +
+	"\x05files\x18\x02 \x03(\tR\x05files\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\x12\x1f\n" +
+	"\vauthor_name\x18\x04 \x01(\tR\n" +
+	"authorName\x12!\n" +
+	"\fauthor_email\x18\x05 \x01(\tR\vauthorEmail\"2\n" +
 	"\x11GitCommitResponse\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\"y\n" +

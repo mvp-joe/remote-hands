@@ -17,7 +17,7 @@ service Service {
   // Bash execution (server-streaming)
   rpc RunBash(RunBashRequest) returns (stream RunBashEvent);
 
-  // Git operations (exec.Command-based)
+  // Git operations (go-git)
   rpc GitStatus(GitStatusRequest) returns (GitStatusResponse);
   rpc GitDiff(GitDiffRequest) returns (GitDiffResponse);
   rpc GitCommit(GitCommitRequest) returns (GitCommitResponse);
@@ -167,6 +167,7 @@ message GitFileStatus {
 message GitDiffRequest {
   string path = 1;
   bool staged = 2;
+  string file_path = 3;
 }
 
 message GitDiffResponse {
@@ -176,6 +177,9 @@ message GitDiffResponse {
 message GitCommitRequest {
   string message = 1;
   repeated string files = 2;
+  string path = 3;
+  string author_name = 4;
+  string author_email = 5;
 }
 
 message GitCommitResponse {

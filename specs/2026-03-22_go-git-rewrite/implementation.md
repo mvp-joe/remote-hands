@@ -2,11 +2,11 @@
 
 ## Phase 1: Proto and Generated Code
 
-- [ ] Update `GitDiffRequest` in `proto/remotehands/v1/service.proto`: add `string file_path = 3`
-- [ ] Update `GitCommitRequest` in `proto/remotehands/v1/service.proto`: add `string path = 3`, `string author_name = 4`, `string author_email = 5`
-- [ ] Update service comment block: change "Git operations (exec.Command-based)" to "Git operations (go-git)"
-- [ ] Run `buf generate` to regenerate `gen/remotehands/v1/service.pb.go`
-- [ ] Verify build: `go build ./...`
+- [x] Update `GitDiffRequest` in `proto/remotehands/v1/service.proto`: add `string file_path = 3`
+- [x] Update `GitCommitRequest` in `proto/remotehands/v1/service.proto`: add `string path = 3`, `string author_name = 4`, `string author_email = 5`
+- [x] Update service comment block: change "Git operations (exec.Command-based)" to "Git operations (go-git)"
+- [x] Run `buf generate` to regenerate `gen/remotehands/v1/service.pb.go`
+- [x] Verify build: `go build ./...`
 
 ## Phase 2: Constructor and Service Struct
 

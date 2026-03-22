@@ -108,7 +108,7 @@ type ServiceClient interface {
 	Grep(context.Context, *connect.Request[v1.GrepRequest]) (*connect.Response[v1.GrepResponse], error)
 	// Bash execution (server-streaming)
 	RunBash(context.Context, *connect.Request[v1.RunBashRequest]) (*connect.ServerStreamForClient[v1.RunBashEvent], error)
-	// Git operations (exec.Command-based)
+	// Git operations (go-git)
 	GitStatus(context.Context, *connect.Request[v1.GitStatusRequest]) (*connect.Response[v1.GitStatusResponse], error)
 	GitDiff(context.Context, *connect.Request[v1.GitDiffRequest]) (*connect.Response[v1.GitDiffResponse], error)
 	GitCommit(context.Context, *connect.Request[v1.GitCommitRequest]) (*connect.Response[v1.GitCommitResponse], error)
@@ -516,7 +516,7 @@ type ServiceHandler interface {
 	Grep(context.Context, *connect.Request[v1.GrepRequest]) (*connect.Response[v1.GrepResponse], error)
 	// Bash execution (server-streaming)
 	RunBash(context.Context, *connect.Request[v1.RunBashRequest], *connect.ServerStream[v1.RunBashEvent]) error
-	// Git operations (exec.Command-based)
+	// Git operations (go-git)
 	GitStatus(context.Context, *connect.Request[v1.GitStatusRequest]) (*connect.Response[v1.GitStatusResponse], error)
 	GitDiff(context.Context, *connect.Request[v1.GitDiffRequest]) (*connect.Response[v1.GitDiffResponse], error)
 	GitCommit(context.Context, *connect.Request[v1.GitCommitRequest]) (*connect.Response[v1.GitCommitResponse], error)
