@@ -19,14 +19,14 @@
 
 ## Phase 3: gitStatus Rewrite
 
-- [ ] Create `worker/git_status.go`
-- [ ] Implement `gitStatus` using `git.PlainOpen` + `Worktree.Status()`
-- [ ] Map go-git `StatusCode` values to the existing status strings, preserving current priority: `Staging` field takes precedence over `Worktree` field (e.g., `Staging==Added` → `"added"` even if `Worktree==Modified`); untracked requires both fields == `Untracked`; deleted if either field == `Deleted`; modified if either field == `Modified`; renamed → `"modified"`; copied → `"added"`
-- [ ] Handle "not a git repository" error from `git.PlainOpen` returning `CodeFailedPrecondition`
-- [ ] Preserve `ValidatePath` call for repo path sandboxing
-- [ ] Remove `gitStatus` from `worker/git.go`
-- [ ] Remove `parseGitStatus` and `mapGitStatus` helper functions (no longer needed)
-- [ ] Verify tests pass: `go test ./worker/ -run TestService_GitStatus`
+- [x] Create `worker/git_status.go`
+- [x] Implement `gitStatus` using `git.PlainOpen` + `Worktree.Status()`
+- [x] Map go-git `StatusCode` values to the existing status strings, preserving current priority: `Staging` field takes precedence over `Worktree` field (e.g., `Staging==Added` → `"added"` even if `Worktree==Modified`); untracked requires both fields == `Untracked`; deleted if either field == `Deleted`; modified if either field == `Modified`; renamed → `"modified"`; copied → `"added"`
+- [x] Handle "not a git repository" error from `git.PlainOpen` returning `CodeFailedPrecondition`
+- [x] Preserve `ValidatePath` call for repo path sandboxing
+- [x] Remove `gitStatus` from `worker/git.go`
+- [x] Remove `parseGitStatus` and `mapGitStatus` helper functions (no longer needed)
+- [x] Verify tests pass: `go test ./worker/ -run TestService_GitStatus`
 
 ## Phase 4: gitDiff Rewrite
 

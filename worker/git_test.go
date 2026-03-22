@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -612,104 +611,6 @@ func isHexString(s string) bool {
 	return true
 }
 
-// =============================================================================
-// parseGitStatus unit tests
-// =============================================================================
-
-func TestParseGitStatus(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		input    string
-		expected []*remotehandsv1.GitFileStatus
-	}{
-		{
-			name:  "modified in working tree",
-			input: " M file.txt\n",
-			expected: []*remotehandsv1.GitFileStatus{
-				{Path: "file.txt", Status: "modified"},
-			},
-		},
-		{
-			name:  "modified and staged",
-			input: "M  file.txt\n",
-			expected: []*remotehandsv1.GitFileStatus{
-				{Path: "file.txt", Status: "modified"},
-			},
-		},
-		{
-			name:  "new file staged",
-			input: "A  newfile.txt\n",
-			expected: []*remotehandsv1.GitFileStatus{
-				{Path: "newfile.txt", Status: "added"},
-			},
-		},
-		{
-			name:  "deleted in working tree",
-			input: " D deleted.txt\n",
-			expected: []*remotehandsv1.GitFileStatus{
-				{Path: "deleted.txt", Status: "deleted"},
-			},
-		},
-		{
-			name:  "untracked file",
-			input: "?? untracked.txt\n",
-			expected: []*remotehandsv1.GitFileStatus{
-				{Path: "untracked.txt", Status: "untracked"},
-			},
-		},
-		{
-			name:  "renamed file",
-			input: "R  old.txt -> new.txt\n",
-			expected: []*remotehandsv1.GitFileStatus{
-				{Path: "new.txt", Status: "modified"},
-			},
-		},
-		{
-			name: "multiple files",
-			input: ` M modified.txt
-A  added.txt
- D deleted.txt
-?? untracked.txt
-`,
-			expected: []*remotehandsv1.GitFileStatus{
-				{Path: "modified.txt", Status: "modified"},
-				{Path: "added.txt", Status: "added"},
-				{Path: "deleted.txt", Status: "deleted"},
-				{Path: "untracked.txt", Status: "untracked"},
-			},
-		},
-		{
-			name:     "empty output",
-			input:    "",
-			expected: nil,
-		},
-		{
-			name:     "empty lines only",
-			input:    "\n\n",
-			expected: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			result := parseGitStatus(tt.input)
-
-			if tt.expected == nil {
-				assert.Nil(t, result)
-				return
-			}
-
-			require.Len(t, result, len(tt.expected))
-			for i, exp := range tt.expected {
-				assert.Equal(t, exp.Path, result[i].Path)
-				assert.Equal(t, exp.Status, result[i].Status)
-			}
-		})
-	}
-}
 
 // =============================================================================
 // GitClone / GitPush Tests (go-git)
@@ -806,33 +707,3 @@ func TestGitPush_LocalRemote(t *testing.T) {
 	assert.Contains(t, string(output), "init")
 }
 
-func TestMapGitStatus(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		index    byte
-		workTree byte
-		expected string
-	}{
-		{'?', '?', "untracked"},
-		{'A', ' ', "added"},
-		{'A', 'M', "added"},
-		{'D', ' ', "deleted"},
-		{' ', 'D', "deleted"},
-		{'M', ' ', "modified"},
-		{' ', 'M', "modified"},
-		{'M', 'M', "modified"},
-		{'R', ' ', "modified"},
-		{'C', ' ', "added"},
-		{' ', ' ', ""},
-	}
-
-	for _, tt := range tests {
-		name := strings.ReplaceAll(string([]byte{tt.index, tt.workTree}), " ", "_")
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			result := mapGitStatus(tt.index, tt.workTree)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
