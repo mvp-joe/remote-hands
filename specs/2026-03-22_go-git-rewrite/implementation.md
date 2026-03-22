@@ -10,12 +10,12 @@
 
 ## Phase 2: Constructor and Service Struct
 
-- [ ] Define `ServiceGitOptions` struct in `worker/git_gogit.go`
-- [ ] Rewrite `NewServiceWithGitAuth` to accept `ServiceGitOptions` instead of `sshKey, httpsToken string`
-- [ ] Add `gitAuthorName` and `gitAuthorEmail` fields to the `Service` struct in `worker/service.go`
-- [ ] Populate `gitAuthorName`/`gitAuthorEmail` from `ServiceGitOptions` in the constructor
-- [ ] Update all callers of `NewServiceWithGitAuth` in test helpers: `TestGitClone_InvalidSSHKey`, `TestGitClone_NoAuth_LocalRepo`, `TestGitPush_LocalRemote` in `worker/git_test.go` (`cmd/remotehands/main.go` uses `NewService`, not affected)
-- [ ] Verify build: `go build ./...`
+- [x] Define `ServiceGitOptions` struct in `worker/git_gogit.go`
+- [x] Rewrite `NewServiceWithGitAuth` to accept `ServiceGitOptions` instead of `sshKey, httpsToken string`
+- [x] Add `gitAuthorName` and `gitAuthorEmail` fields to the `Service` struct in `worker/service.go`
+- [x] Populate `gitAuthorName`/`gitAuthorEmail` from `ServiceGitOptions` in the constructor
+- [x] Update all callers of `NewServiceWithGitAuth` in test helpers: `TestGitClone_InvalidSSHKey`, `TestGitClone_NoAuth_LocalRepo`, `TestGitPush_LocalRemote` in `worker/git_test.go` (`cmd/remotehands/main.go` uses `NewService`, not affected)
+- [x] Verify build: `go build ./...`
 
 ## Phase 3: gitStatus Rewrite
 

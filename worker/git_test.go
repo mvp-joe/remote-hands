@@ -718,7 +718,7 @@ A  added.txt
 func TestGitClone_InvalidSSHKey(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewServiceWithGitAuth(t.TempDir(), nil, "not-a-valid-pem-key", "")
+	_, err := NewServiceWithGitAuth(t.TempDir(), nil, ServiceGitOptions{SSHKey: "not-a-valid-pem-key"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "parse SSH key")
 }
@@ -752,7 +752,7 @@ func TestGitClone_NoAuth_LocalRepo(t *testing.T) {
 
 	// Now clone the bare repo using our service.
 	homeDir := t.TempDir()
-	svc, err := NewServiceWithGitAuth(homeDir, nil, "", "")
+	svc, err := NewServiceWithGitAuth(homeDir, nil, ServiceGitOptions{})
 	require.NoError(t, err)
 
 	sha, err := svc.gitClone(ctx, bareDir, "cloned", "", 0)
@@ -792,7 +792,7 @@ func TestGitPush_LocalRemote(t *testing.T) {
 	require.NoError(t, cmd.Run())
 
 	// Push using our service.
-	svc, err := NewServiceWithGitAuth(homeDir, nil, "", "")
+	svc, err := NewServiceWithGitAuth(homeDir, nil, ServiceGitOptions{})
 	require.NoError(t, err)
 
 	err = svc.gitPush(ctx, "repo", "origin", "master", false)

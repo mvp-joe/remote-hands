@@ -17,18 +17,25 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// ServiceGitOptions configures git authentication and commit author defaults
+// for a Service created via NewServiceWithGitAuth.
+type ServiceGitOptions struct {
+	SSHKey      string // PEM-encoded private key (empty = no SSH auth)
+	HTTPSToken  string // PAT or OAuth token (empty = no HTTPS auth)
+	AuthorName  string // default author name for commits
+	AuthorEmail string // default author email for commits
+}
+
 // NewServiceWithGitAuth creates a Service with git credentials loaded into memory.
-// sshKey is PEM-encoded private key content (empty = no SSH auth).
-// httpsToken is a PAT or OAuth token (empty = no HTTPS auth).
 // Credentials are never written to disk -- stored as go-git transport.AuthMethod objects.
-func NewServiceWithGitAuth(homeDir string, logger *slog.Logger, sshKey, httpsToken string) (*Service, error) {
+func NewServiceWithGitAuth(homeDir string, logger *slog.Logger, opts ServiceGitOptions) (*Service, error) {
 	svc, err := NewService(homeDir, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	if sshKey != "" {
-		auth, err := gitssh.NewPublicKeys("git", []byte(sshKey), "")
+	if opts.SSHKey != "" {
+		auth, err := gitssh.NewPublicKeys("git", []byte(opts.SSHKey), "")
 		if err != nil {
 			return nil, fmt.Errorf("parse SSH key: %w", err)
 		}
@@ -38,12 +45,15 @@ func NewServiceWithGitAuth(homeDir string, logger *slog.Logger, sshKey, httpsTok
 		svc.gitSSHAuth = auth
 	}
 
-	if httpsToken != "" {
+	if opts.HTTPSToken != "" {
 		svc.gitHTTPSAuth = &githttp.BasicAuth{
 			Username: "x-token",
-			Password: httpsToken,
+			Password: opts.HTTPSToken,
 		}
 	}
+
+	svc.gitAuthorName = opts.AuthorName
+	svc.gitAuthorEmail = opts.AuthorEmail
 
 	return svc, nil
 }

@@ -36,6 +36,10 @@ type Service struct {
 	// go-git auth — set via NewServiceWithGitAuth, used only by GitClone/GitPush
 	gitSSHAuth   transport.AuthMethod
 	gitHTTPSAuth transport.AuthMethod
+
+	// go-git commit author defaults — set via NewServiceWithGitAuth
+	gitAuthorName  string
+	gitAuthorEmail string
 }
 
 // NewService creates a new Service with the given home directory.
