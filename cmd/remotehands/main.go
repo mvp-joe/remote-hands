@@ -61,9 +61,25 @@ func run() error {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	svc, err := worker.NewService(*home, logger)
-	if err != nil {
-		return fmt.Errorf("create service: %w", err)
+	gitAuthorName := os.Getenv("GIT_AUTHOR_NAME")
+	gitAuthorEmail := os.Getenv("GIT_AUTHOR_EMAIL")
+
+	var svc *worker.Service
+	if gitAuthorName != "" || gitAuthorEmail != "" {
+		var err error
+		svc, err = worker.NewServiceWithGitAuth(*home, logger, worker.ServiceGitOptions{
+			AuthorName:  gitAuthorName,
+			AuthorEmail: gitAuthorEmail,
+		})
+		if err != nil {
+			return fmt.Errorf("create service: %w", err)
+		}
+	} else {
+		var err error
+		svc, err = worker.NewService(*home, logger)
+		if err != nil {
+			return fmt.Errorf("create service: %w", err)
+		}
 	}
 
 	// Build interceptors.

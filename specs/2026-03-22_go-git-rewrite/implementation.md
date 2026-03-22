@@ -107,9 +107,9 @@
 
 ## Phase 10: Server Binary Author Config
 
-- [ ] Update `cmd/remotehands/main.go` to read `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` env vars
-- [ ] If either env var is set, use `NewServiceWithGitAuth` instead of `NewService`, passing author config via `ServiceGitOptions`
-- [ ] This is optional for callers — the four-level resolution chain still falls through to `.gitconfig` and per-call params
+- [x] Update `cmd/remotehands/main.go` to read `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` env vars
+- [x] If either env var is set, use `NewServiceWithGitAuth` instead of `NewService`, passing author config via `ServiceGitOptions`
+- [x] This is optional for callers — the four-level resolution chain still falls through to `.gitconfig` and per-call params
 
 ## Phase 11: Cleanup and Verification
 
