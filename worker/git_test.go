@@ -472,6 +472,33 @@ func TestService_GitDiff_FilePathTraversal(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
+func TestService_GitDiff_FilePathNoChanges(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, homeDir := newTestService(t)
+	initGitRepo(t, homeDir)
+	createInitialCommit(t, homeDir)
+
+	// Create and commit two files
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "changed.txt"), []byte("original\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "unchanged.txt"), []byte("stable\n"), 0644))
+	cmd := exec.Command("git", "add", ".")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "commit", "-m", "Add files")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Modify only one file
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "changed.txt"), []byte("modified\n"), 0644))
+
+	// Diff the unmodified file — should be empty
+	req := connect.NewRequest(&remotehandsv1.GitDiffRequest{FilePath: "unchanged.txt", Staged: false})
+	resp, err := svc.GitDiff(ctx, req)
+	require.NoError(t, err)
+	assert.Empty(t, resp.Msg.Diff)
+}
+
 // =============================================================================
 // GitCommit Tests
 // =============================================================================
@@ -628,9 +655,9 @@ func TestService_GitCommit_NotARepo(t *testing.T) {
 	_, err := svc.GitCommit(ctx, req)
 	require.Error(t, err)
 
-	// The error will be from git config or git add
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeFailedPrecondition, connErr.Code())
 }
 
 // Task 5: Renamed from TestService_GitCommit_WorksWithNoLocalConfig.

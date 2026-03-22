@@ -35,6 +35,9 @@ func (s *Service) gitDiff(ctx context.Context, repoPath, filePath string, staged
 		if err == ErrPathTraversal {
 			return "", connect.NewError(connect.CodePermissionDenied, err)
 		}
+		if err != nil {
+			return "", connect.NewError(connect.CodeInternal, fmt.Errorf("file path validation failed: %w", err))
+		}
 	}
 
 	repo, err := git.PlainOpen(absRepoPath)
