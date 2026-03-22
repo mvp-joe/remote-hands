@@ -10,50 +10,6 @@ import (
 	"connectrpc.com/connect"
 )
 
-// gitDiff runs `git diff` and returns the diff output.
-// If staged is true, returns staged changes (--staged).
-// If path is specified, diffs only that file.
-func (s *Service) gitDiff(ctx context.Context, repoPath, filePath string, staged bool) (string, error) {
-	absRepoPath, err := ValidatePath(s.homeDir, repoPath)
-	if err == ErrPathTraversal {
-		return "", connect.NewError(connect.CodePermissionDenied, err)
-	}
-	if err != nil {
-		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("path validation failed: %w", err))
-	}
-
-	args := []string{"diff"}
-	if staged {
-		args = append(args, "--staged")
-	}
-	if filePath != "" {
-		// Validate the file path is within the repo
-		_, err := ValidatePath(s.homeDir, filePath)
-		if err == ErrPathTraversal {
-			return "", connect.NewError(connect.CodePermissionDenied, err)
-		}
-		args = append(args, "--", filePath)
-	}
-
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = absRepoPath
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		// Check if it's not a git repository (case-insensitive)
-		stderrLower := strings.ToLower(stderr.String())
-		if strings.Contains(stderrLower, "not a git repository") {
-			return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("not a git repository"))
-		}
-		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("git diff failed: %s", stderr.String()))
-	}
-
-	return stdout.String(), nil
-}
-
 // gitCommit stages files and creates a commit.
 // If files is empty, commits all currently staged changes.
 // If files is specified, stages those files first then commits.

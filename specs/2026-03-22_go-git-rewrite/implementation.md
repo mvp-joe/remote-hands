@@ -30,20 +30,20 @@
 
 ## Phase 4: gitDiff Rewrite
 
-- [ ] Create `worker/git_diff.go`
-- [ ] Define custom types implementing `fdiff.Patch`, `fdiff.FilePatch`, `fdiff.File`, `fdiff.Chunk` interfaces (requires `"github.com/go-git/go-git/v5/plumbing/filemode"` import; use `filemode.Regular` for text files)
-- [ ] Map `diff.Do()` results (`[]diffmatchpatch.Diff`) to `chunk` types: `diffmatchpatch.DiffInsert` → `fdiff.Add`, `DiffDelete` → `fdiff.Delete`, `DiffEqual` → `fdiff.Equal`
-- [ ] Implement unstaged diff: read "from" content from index blobs, "to" from filesystem via `os.ReadFile`
-- [ ] Implement staged diff: read "from" content from HEAD tree blobs, "to" from index blobs
-- [ ] Implement file path filtering: when `filePath` is non-empty, only include matching file in the patch
-- [ ] Handle new files (no "from" blob): treat as add with empty "from"
-- [ ] Handle deleted files (no "to" content): treat as delete with empty "to"
-- [ ] Handle binary files: use content sniffing (`bytes.Contains(content[:min(8000, len)], []byte{0})`) to detect, set `IsBinary() = true`
-- [ ] Encode output via `fdiff.NewUnifiedEncoder(buf, fdiff.DefaultContextLines).Encode(patch)`
-- [ ] Handle "not a git repository" error returning `CodeFailedPrecondition`
-- [ ] Preserve `ValidatePath` calls for both repo path and file path
-- [ ] Remove `gitDiff` from `worker/git.go`
-- [ ] Verify tests pass: `go test ./worker/ -run TestService_GitDiff`
+- [x] Create `worker/git_diff.go`
+- [x] Define custom types implementing `fdiff.Patch`, `fdiff.FilePatch`, `fdiff.File`, `fdiff.Chunk` interfaces (requires `"github.com/go-git/go-git/v5/plumbing/filemode"` import; use `filemode.Regular` for text files)
+- [x] Map `diff.Do()` results (`[]diffmatchpatch.Diff`) to `chunk` types: `diffmatchpatch.DiffInsert` → `fdiff.Add`, `DiffDelete` → `fdiff.Delete`, `DiffEqual` → `fdiff.Equal`
+- [x] Implement unstaged diff: read "from" content from index blobs, "to" from filesystem via `os.ReadFile`
+- [x] Implement staged diff: read "from" content from HEAD tree blobs, "to" from index blobs
+- [x] Implement file path filtering: when `filePath` is non-empty, only include matching file in the patch
+- [x] Handle new files (no "from" blob): treat as add with empty "from"
+- [x] Handle deleted files (no "to" content): treat as delete with empty "to"
+- [x] Handle binary files: use content sniffing (`bytes.Contains(content[:min(8000, len)], []byte{0})`) to detect, set `IsBinary() = true`
+- [x] Encode output via `fdiff.NewUnifiedEncoder(buf, fdiff.DefaultContextLines).Encode(patch)`
+- [x] Handle "not a git repository" error returning `CodeFailedPrecondition`
+- [x] Preserve `ValidatePath` calls for both repo path and file path
+- [x] Remove `gitDiff` from `worker/git.go`
+- [x] Verify tests pass: `go test ./worker/ -run TestService_GitDiff`
 
 ## Phase 5: gitCommit Rewrite
 
