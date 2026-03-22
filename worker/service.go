@@ -206,7 +206,7 @@ func (s *Service) GitCommit(
 	ctx context.Context,
 	req *connect.Request[remotehandsv1.GitCommitRequest],
 ) (*connect.Response[remotehandsv1.GitCommitResponse], error) {
-	sha, err := s.gitCommit(ctx, "", req.Msg.Message, req.Msg.Files)
+	sha, err := s.gitCommit(ctx, "", req.Msg.Message, req.Msg.Files, "", "")
 	if err != nil {
 		return nil, err
 	}

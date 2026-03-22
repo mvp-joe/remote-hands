@@ -47,19 +47,19 @@
 
 ## Phase 5: gitCommit Rewrite
 
-- [ ] Create `worker/git_commit.go`
-- [ ] Implement `resolveAuthor` with the four-level resolution chain (per-call, init-time, .gitconfig, error)
-- [ ] Implement `gitCommit` using `git.PlainOpen` + `Worktree.Add` + `Worktree.Commit`
-- [ ] When `repoPath` is empty, default to `s.homeDir` (preserved via `ValidatePath`)
-- [ ] Use `object.Signature{Name, Email, When: time.Now()}` for the commit author
-- [ ] Return `plumbing.Hash.String()` as the commit SHA
-- [ ] Handle "nothing to commit": check `Worktree.Status()` after staging, error if no staged changes
-- [ ] Handle "not a git repository" error returning `CodeFailedPrecondition`
-- [ ] Handle empty commit message returning `CodeInvalidArgument`
-- [ ] Handle missing author config returning `CodeInvalidArgument`
-- [ ] Preserve `ValidatePath` calls for repo path and each file path
-- [ ] Remove `gitCommit`, `ensureGitConfig`, `getHeadCommitSHA` from `worker/git.go`
-- [ ] Verify tests pass: `go test ./worker/ -run TestService_GitCommit`
+- [x] Create `worker/git_commit.go`
+- [x] Implement `resolveAuthor` with the four-level resolution chain (per-call, init-time, .gitconfig, error)
+- [x] Implement `gitCommit` using `git.PlainOpen` + `Worktree.Add` + `Worktree.Commit`
+- [x] When `repoPath` is empty, default to `s.homeDir` (preserved via `ValidatePath`)
+- [x] Use `object.Signature{Name, Email, When: time.Now()}` for the commit author
+- [x] Return `plumbing.Hash.String()` as the commit SHA
+- [x] Handle "nothing to commit": check `Worktree.Status()` after staging, error if no staged changes
+- [x] Handle "not a git repository" error returning `CodeFailedPrecondition`
+- [x] Handle empty commit message returning `CodeInvalidArgument`
+- [x] Handle missing author config returning `CodeInvalidArgument`
+- [x] Preserve `ValidatePath` calls for repo path and each file path
+- [x] Remove `gitCommit`, `ensureGitConfig`, `getHeadCommitSHA` from `worker/git.go`
+- [x] Verify tests pass: `go test ./worker/ -run TestService_GitCommit`
 
 ## Phase 6: Delete git.go and Update Delegation
 
