@@ -26,7 +26,7 @@ Rewrite the three remaining git-CLI-backed RPCs (`gitStatus`, `gitDiff`, `gitCom
 
 ## Current Status
 
-Planning
+Complete (2026-03-22). Implemented autonomously via /spec:implement-all.
 
 ## Key Files
 
