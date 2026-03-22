@@ -288,16 +288,18 @@ func registerTools(s *server.MCPServer, ops mcptools.Ops, client remotehandsv1co
 		mcp.WithString("repo_url", mcp.Required(), mcp.Description("Remote repository URL")),
 		mcp.WithString("local_path", mcp.Required(), mcp.Description("Destination path relative to home")),
 		mcp.WithString("branch", mcp.Description("Branch to checkout after clone")),
+		mcp.WithNumber("depth", mcp.Description("Clone depth: 0 = shallow (depth 1, default), -1 = full history, >0 = specific depth")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			RepoURL   string `json:"repo_url"`
-			LocalPath string `json:"local_path"`
-			Branch    string `json:"branch"`
+			RepoURL   string  `json:"repo_url"`
+			LocalPath string  `json:"local_path"`
+			Branch    string  `json:"branch"`
+			Depth     float64 `json:"depth"`
 		}
 		if err := mcputils.CoerceBindArguments(&req, &args); err != nil {
 			return mcputils.ErrorToolResult("invalid_arguments", err)
 		}
-		sha, err := ops.GitClone(ctx, args.RepoURL, args.LocalPath, args.Branch)
+		sha, err := ops.GitClone(ctx, args.RepoURL, args.LocalPath, args.Branch, int32(args.Depth))
 		if err != nil {
 			return mcputils.ErrorToolResult("git_clone", err)
 		}

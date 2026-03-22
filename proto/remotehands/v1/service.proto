@@ -186,6 +186,7 @@ message GitCloneRequest {
   string repo_url = 1;
   string local_path = 2;
   string branch = 3;
+  int32 depth = 4; // 0 = use default (shallow depth 1), -1 = full history
 }
 
 message GitCloneResponse {

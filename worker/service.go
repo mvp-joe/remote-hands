@@ -217,7 +217,7 @@ func (s *Service) GitClone(
 	ctx context.Context,
 	req *connect.Request[remotehandsv1.GitCloneRequest],
 ) (*connect.Response[remotehandsv1.GitCloneResponse], error) {
-	sha, err := s.gitClone(ctx, req.Msg.RepoUrl, req.Msg.LocalPath, req.Msg.Branch)
+	sha, err := s.gitClone(ctx, req.Msg.RepoUrl, req.Msg.LocalPath, req.Msg.Branch, req.Msg.Depth)
 	if err != nil {
 		return nil, err
 	}

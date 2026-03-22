@@ -1583,6 +1583,7 @@ type GitCloneRequest struct {
 	RepoUrl       string                 `protobuf:"bytes,1,opt,name=repo_url,json=repoUrl,proto3" json:"repo_url,omitempty"`
 	LocalPath     string                 `protobuf:"bytes,2,opt,name=local_path,json=localPath,proto3" json:"local_path,omitempty"`
 	Branch        string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
+	Depth         int32                  `protobuf:"varint,4,opt,name=depth,proto3" json:"depth,omitempty"` // 0 = use default (shallow depth 1), -1 = full history
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1636,6 +1637,13 @@ func (x *GitCloneRequest) GetBranch() string {
 		return x.Branch
 	}
 	return ""
+}
+
+func (x *GitCloneRequest) GetDepth() int32 {
+	if x != nil {
+		return x.Depth
+	}
+	return 0
 }
 
 type GitCloneResponse struct {
@@ -4259,12 +4267,13 @@ const file_remotehands_v1_service_proto_rawDesc = "" +
 	"\x05files\x18\x02 \x03(\tR\x05files\"2\n" +
 	"\x11GitCommitResponse\x12\x1d\n" +
 	"\n" +
-	"commit_sha\x18\x01 \x01(\tR\tcommitSha\"c\n" +
+	"commit_sha\x18\x01 \x01(\tR\tcommitSha\"y\n" +
 	"\x0fGitCloneRequest\x12\x19\n" +
 	"\brepo_url\x18\x01 \x01(\tR\arepoUrl\x12\x1d\n" +
 	"\n" +
 	"local_path\x18\x02 \x01(\tR\tlocalPath\x12\x16\n" +
-	"\x06branch\x18\x03 \x01(\tR\x06branch\"1\n" +
+	"\x06branch\x18\x03 \x01(\tR\x06branch\x12\x14\n" +
+	"\x05depth\x18\x04 \x01(\x05R\x05depth\"1\n" +
 	"\x10GitCloneResponse\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\"s\n" +

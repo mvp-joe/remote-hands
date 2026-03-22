@@ -60,7 +60,8 @@ func (s *Service) selectGitAuth(repoURL string) transport.AuthMethod {
 }
 
 // gitClone clones a remote repository into a path under homeDir.
-func (s *Service) gitClone(ctx context.Context, repoURL, localPath, branch string) (string, error) {
+// depth: 0 = default (shallow depth 1), -1 = full history, >0 = specific depth.
+func (s *Service) gitClone(ctx context.Context, repoURL, localPath, branch string, depth int32) (string, error) {
 	if repoURL == "" {
 		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("repo_url is required"))
 	}
@@ -75,9 +76,18 @@ func (s *Service) gitClone(ctx context.Context, repoURL, localPath, branch strin
 		absPath = filepath.Join(s.homeDir, localPath)
 	}
 
+	// Resolve clone depth: 0 = default shallow (1), -1 = full, >0 = explicit.
+	cloneDepth := 1
+	if depth > 0 {
+		cloneDepth = int(depth)
+	} else if depth == -1 {
+		cloneDepth = 0 // go-git: 0 means no depth limit (full clone)
+	}
+
 	opts := &git.CloneOptions{
-		URL:  repoURL,
-		Auth: s.selectGitAuth(repoURL),
+		URL:   repoURL,
+		Auth:  s.selectGitAuth(repoURL),
+		Depth: cloneDepth,
 	}
 
 	if branch != "" {

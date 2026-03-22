@@ -755,7 +755,7 @@ func TestGitClone_NoAuth_LocalRepo(t *testing.T) {
 	svc, err := NewServiceWithGitAuth(homeDir, nil, "", "")
 	require.NoError(t, err)
 
-	sha, err := svc.gitClone(ctx, bareDir, "cloned", "")
+	sha, err := svc.gitClone(ctx, bareDir, "cloned", "", 0)
 	require.NoError(t, err)
 	assert.Len(t, sha, 40)
 

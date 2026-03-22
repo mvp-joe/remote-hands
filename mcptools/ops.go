@@ -37,7 +37,8 @@ type Ops interface {
 	GitCommit(ctx context.Context, message string, files []string) (string, error)
 
 	// GitClone clones a remote repository into a local path.
-	GitClone(ctx context.Context, repoURL, localPath, branch string) (string, error)
+	// depth: 0 = default (shallow depth 1), -1 = full history, >0 = specific depth.
+	GitClone(ctx context.Context, repoURL, localPath, branch string, depth int32) (string, error)
 
 	// GitPush pushes a local repository's branch to the remote.
 	GitPush(ctx context.Context, repoPath, remote, branch string, force bool) error

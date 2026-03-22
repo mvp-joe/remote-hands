@@ -190,11 +190,12 @@ func (d *DirectOps) GitCommit(ctx context.Context, message string, files []strin
 	return resp.Msg.CommitSha, nil
 }
 
-func (d *DirectOps) GitClone(ctx context.Context, repoURL, localPath, branch string) (string, error) {
+func (d *DirectOps) GitClone(ctx context.Context, repoURL, localPath, branch string, depth int32) (string, error) {
 	resp, err := d.client.GitClone(ctx, connect.NewRequest(&workerv1.GitCloneRequest{
 		RepoUrl:   repoURL,
 		LocalPath: localPath,
 		Branch:    branch,
+		Depth:     depth,
 	}))
 	if err != nil {
 		return "", fmt.Errorf("git clone: %w", err)
