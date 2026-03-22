@@ -63,11 +63,11 @@
 
 ## Phase 6: Delete git.go and Update Delegation
 
-- [ ] Delete `worker/git.go` entirely
-- [ ] Update `Service.GitDiff` in `worker/service.go`: pass `req.Msg.Path` as repoPath, `req.Msg.FilePath` as filePath
-- [ ] Update `Service.GitCommit` in `worker/service.go`: change call from `s.gitCommit(ctx, "", req.Msg.Message, req.Msg.Files)` to `s.gitCommit(ctx, req.Msg.Path, req.Msg.Message, req.Msg.Files, req.Msg.AuthorName, req.Msg.AuthorEmail)`
-- [ ] Confirm `Service.GitStatus` delegation is already correct (passes `req.Msg.Path` as repoPath -- no change needed)
-- [ ] Verify build: `go build ./...`
+- [x] Delete `worker/git.go` entirely
+- [x] Update `Service.GitDiff` in `worker/service.go`: pass `req.Msg.Path` as repoPath, `req.Msg.FilePath` as filePath
+- [x] Update `Service.GitCommit` in `worker/service.go`: change call from `s.gitCommit(ctx, "", req.Msg.Message, req.Msg.Files)` to `s.gitCommit(ctx, req.Msg.Path, req.Msg.Message, req.Msg.Files, req.Msg.AuthorName, req.Msg.AuthorEmail)`
+- [x] Confirm `Service.GitStatus` delegation is already correct (passes `req.Msg.Path` as repoPath -- no change needed)
+- [x] Verify build: `go build ./...`
 
 ## Phase 7: Ops Interface and DirectOps
 

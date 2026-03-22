@@ -191,7 +191,7 @@ func (s *Service) GitDiff(
 	ctx context.Context,
 	req *connect.Request[remotehandsv1.GitDiffRequest],
 ) (*connect.Response[remotehandsv1.GitDiffResponse], error) {
-	diff, err := s.gitDiff(ctx, "", req.Msg.Path, req.Msg.Staged)
+	diff, err := s.gitDiff(ctx, req.Msg.Path, req.Msg.FilePath, req.Msg.Staged)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (s *Service) GitCommit(
 	ctx context.Context,
 	req *connect.Request[remotehandsv1.GitCommitRequest],
 ) (*connect.Response[remotehandsv1.GitCommitResponse], error) {
-	sha, err := s.gitCommit(ctx, "", req.Msg.Message, req.Msg.Files, "", "")
+	sha, err := s.gitCommit(ctx, req.Msg.Path, req.Msg.Message, req.Msg.Files, req.Msg.AuthorName, req.Msg.AuthorEmail)
 	if err != nil {
 		return nil, err
 	}
