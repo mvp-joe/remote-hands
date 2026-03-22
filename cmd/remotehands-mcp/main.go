@@ -248,16 +248,18 @@ func registerTools(s *server.MCPServer, ops mcptools.Ops, client remotehandsv1co
 
 	s.AddTool(newTool("git_diff", "Get diff of changes in a git repository",
 		mcp.WithString("path", mcp.Description("Repository path")),
+		mcp.WithString("file_path", mcp.Description("Filter diff to a specific file")),
 		mcp.WithBoolean("staged", mcp.Description("Show staged changes")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Path   string `json:"path"`
-			Staged bool   `json:"staged"`
+			Path     string `json:"path"`
+			FilePath string `json:"file_path"`
+			Staged   bool   `json:"staged"`
 		}
 		if err := mcputils.CoerceBindArguments(&req, &args); err != nil {
 			return mcputils.ErrorToolResult("invalid_arguments", err)
 		}
-		diff, err := ops.GitDiff(ctx, args.Path, args.Staged)
+		diff, err := ops.GitDiff(ctx, args.Path, args.FilePath, args.Staged)
 		if err != nil {
 			return mcputils.ErrorToolResult("git_diff", err)
 		}
@@ -269,15 +271,21 @@ func registerTools(s *server.MCPServer, ops mcptools.Ops, client remotehandsv1co
 	s.AddTool(newTool("git_commit", "Create a git commit",
 		mcp.WithString("message", mcp.Required(), mcp.Description("Commit message")),
 		mcp.WithArray("files", mcp.Description("Files to stage before committing")),
+		mcp.WithString("path", mcp.Description("Repository path")),
+		mcp.WithString("author_name", mcp.Description("Author name for the commit")),
+		mcp.WithString("author_email", mcp.Description("Author email for the commit")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Message string   `json:"message"`
-			Files   []string `json:"files"`
+			Message     string   `json:"message"`
+			Files       []string `json:"files"`
+			Path        string   `json:"path"`
+			AuthorName  string   `json:"author_name"`
+			AuthorEmail string   `json:"author_email"`
 		}
 		if err := mcputils.CoerceBindArguments(&req, &args); err != nil {
 			return mcputils.ErrorToolResult("invalid_arguments", err)
 		}
-		sha, err := ops.GitCommit(ctx, args.Message, args.Files)
+		sha, err := ops.GitCommit(ctx, args.Path, args.Message, args.Files, args.AuthorName, args.AuthorEmail)
 		if err != nil {
 			return mcputils.ErrorToolResult("git_commit", err)
 		}

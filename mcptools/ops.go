@@ -31,10 +31,10 @@ type Ops interface {
 	GitStatus(ctx context.Context, path string) ([]*GitFileStatus, error)
 
 	// GitDiff returns the diff output for the repository.
-	GitDiff(ctx context.Context, path string, staged bool) (string, error)
+	GitDiff(ctx context.Context, repoPath string, filePath string, staged bool) (string, error)
 
 	// GitCommit creates a git commit with the given message and files.
-	GitCommit(ctx context.Context, message string, files []string) (string, error)
+	GitCommit(ctx context.Context, repoPath string, message string, files []string, authorName, authorEmail string) (string, error)
 
 	// GitClone clones a remote repository into a local path.
 	// depth: 0 = default (shallow depth 1), -1 = full history, >0 = specific depth.

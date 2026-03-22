@@ -71,20 +71,20 @@
 
 ## Phase 7: Ops Interface and DirectOps
 
-- [ ] Update `GitDiff` signature in `mcptools/ops.go`: add `filePath` parameter
-- [ ] Update `GitCommit` signature in `mcptools/ops.go`: add `repoPath`, `authorName`, `authorEmail` parameters
-- [ ] Update `DirectOps.GitDiff` in `mcptools/direct_ops.go`: pass `filePath` on proto request
-- [ ] Update `DirectOps.GitCommit` in `mcptools/direct_ops.go`: pass `repoPath`, `authorName`, `authorEmail` on proto request
-- [ ] Verify build: `go build ./...`
+- [x] Update `GitDiff` signature in `mcptools/ops.go`: add `filePath` parameter
+- [x] Update `GitCommit` signature in `mcptools/ops.go`: add `repoPath`, `authorName`, `authorEmail` parameters
+- [x] Update `DirectOps.GitDiff` in `mcptools/direct_ops.go`: pass `filePath` on proto request
+- [x] Update `DirectOps.GitCommit` in `mcptools/direct_ops.go`: pass `repoPath`, `authorName`, `authorEmail` on proto request
+- [x] Verify build: `go build ./...`
 
 ## Phase 8: MCP Tool Registration
 
-- [ ] Add `file_path` string argument to `git_diff` tool in `cmd/remotehands-mcp/main.go`
-- [ ] Update `git_diff` handler to pass `args.FilePath` to `ops.GitDiff`
-- [ ] Note: `git_diff` tool's `path` argument changes semantics from file filter to repo path -- this is a breaking change for MCP callers
-- [ ] Add `path`, `author_name`, `author_email` string arguments to `git_commit` tool
-- [ ] Update `git_commit` handler to pass new args to `ops.GitCommit`
-- [ ] Verify build: `go build ./cmd/remotehands-mcp/`
+- [x] Add `file_path` string argument to `git_diff` tool in `cmd/remotehands-mcp/main.go`
+- [x] Update `git_diff` handler to pass `args.FilePath` to `ops.GitDiff`
+- [x] Note: `git_diff` tool's `path` argument changes semantics from file filter to repo path -- this is a breaking change for MCP callers
+- [x] Add `path`, `author_name`, `author_email` string arguments to `git_commit` tool
+- [x] Update `git_commit` handler to pass new args to `ops.GitCommit`
+- [x] Verify build: `go build ./cmd/remotehands-mcp/`
 
 ## Phase 9: Test Updates
 

@@ -168,10 +168,11 @@ func (d *DirectOps) GitStatus(ctx context.Context, path string) ([]*GitFileStatu
 	return files, nil
 }
 
-func (d *DirectOps) GitDiff(ctx context.Context, path string, staged bool) (string, error) {
+func (d *DirectOps) GitDiff(ctx context.Context, repoPath string, filePath string, staged bool) (string, error) {
 	resp, err := d.client.GitDiff(ctx, connect.NewRequest(&workerv1.GitDiffRequest{
-		Path:   path,
-		Staged: staged,
+		Path:     repoPath,
+		Staged:   staged,
+		FilePath: filePath,
 	}))
 	if err != nil {
 		return "", fmt.Errorf("git diff: %w", err)
@@ -179,10 +180,13 @@ func (d *DirectOps) GitDiff(ctx context.Context, path string, staged bool) (stri
 	return resp.Msg.Diff, nil
 }
 
-func (d *DirectOps) GitCommit(ctx context.Context, message string, files []string) (string, error) {
+func (d *DirectOps) GitCommit(ctx context.Context, repoPath string, message string, files []string, authorName, authorEmail string) (string, error) {
 	resp, err := d.client.GitCommit(ctx, connect.NewRequest(&workerv1.GitCommitRequest{
-		Message: message,
-		Files:   files,
+		Message:     message,
+		Files:       files,
+		Path:        repoPath,
+		AuthorName:  authorName,
+		AuthorEmail: authorEmail,
 	}))
 	if err != nil {
 		return "", fmt.Errorf("git commit: %w", err)
