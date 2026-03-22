@@ -434,7 +434,7 @@ func TestDirectOps_GitDiff(t *testing.T) {
 	}
 
 	ops := mcptools.NewDirectOps(mock)
-	diff, err := ops.GitDiff(context.Background(), "/home/user", true)
+	diff, err := ops.GitDiff(context.Background(), "/home/user", "", true)
 
 	require.NoError(t, err)
 	assert.Contains(t, diff, "diff --git")
@@ -454,7 +454,7 @@ func TestDirectOps_GitCommit(t *testing.T) {
 	}
 
 	ops := mcptools.NewDirectOps(mock)
-	sha, err := ops.GitCommit(context.Background(), "Add new feature", []string{"main.go", "util.go"})
+	sha, err := ops.GitCommit(context.Background(), "", "Add new feature", []string{"main.go", "util.go"}, "", "")
 
 	require.NoError(t, err)
 	assert.Equal(t, "abc123def456", sha)

@@ -88,22 +88,22 @@
 
 ## Phase 9: Test Updates
 
-- [ ] Update `TestService_GitDiff_SpecificFile`: change `Path` to repo path (or empty), set `FilePath` to the target filename
-- [ ] Update `TestService_GitDiff_PathTraversal`: note that `Path` now means repo path (test still validates traversal rejection, just different semantics)
-- [ ] Remove `TestParseGitStatus` and `TestMapGitStatus` unit tests (helpers deleted)
-- [ ] Update all existing commit tests (`CommitsAllStaged`, `StagesAndCommitsFiles`, `PartialStaging`, `NothingToCommit`, etc.) to pass `authorName`/`authorEmail` explicitly rather than relying on repo-local `.gitconfig`
-- [ ] Rename `TestService_GitCommit_WorksWithNoLocalConfig` to `TestService_GitCommit_WorksWithPerCallAuthor` -- pass `authorName`/`authorEmail` per-call instead of relying on the deleted `ensureGitConfig` fallback
-- [ ] Add new test: `TestService_GitCommit_PerCallAuthor` -- verifies per-call author name/email appear in commit
-- [ ] Add new test: `TestService_GitCommit_InitTimeAuthor` -- verifies init-time author from `ServiceGitOptions`
-- [ ] Add new test: `TestService_GitCommit_AuthorResolutionOrder` -- verifies per-call overrides init-time
-- [ ] Add new test: `TestService_GitCommit_MissingAuthorError` -- verifies `CodeInvalidArgument` when no author config exists
-- [ ] Add new test: `TestService_GitCommit_PartialAuthorError` -- verifies `CodeInvalidArgument` when only `author_name` or only `author_email` is provided
-- [ ] Add new test: `TestService_GitDiff_NewFile` -- staged diff for a brand-new file (staged via `git add`, then `staged=true`)
-- [ ] Add new test: `TestService_GitDiff_DeletedFile` -- diff for a deleted tracked file
-- [ ] Add new test: `TestService_GitDiff_BinaryFile` -- binary file produces "Binary files differ" output
-- [ ] Add new test: `TestService_GitDiff_FilePathTraversal` -- `file_path` set to `"../../../etc/passwd"` returns `CodePermissionDenied`
-- [ ] Add or update test: `TestNewServiceWithGitAuth_ValidOptions` -- verify `ServiceGitOptions` with author fields populates service correctly
-- [ ] Verify all tests pass: `go test ./...`
+- [x] Update `TestService_GitDiff_SpecificFile`: change `Path` to repo path (or empty), set `FilePath` to the target filename
+- [x] Update `TestService_GitDiff_PathTraversal`: note that `Path` now means repo path (test still validates traversal rejection, just different semantics)
+- [x] Remove `TestParseGitStatus` and `TestMapGitStatus` unit tests (helpers deleted)
+- [x] Update all existing commit tests (`CommitsAllStaged`, `StagesAndCommitsFiles`, `PartialStaging`, `NothingToCommit`, etc.) to pass `authorName`/`authorEmail` explicitly rather than relying on repo-local `.gitconfig`
+- [x] Rename `TestService_GitCommit_WorksWithNoLocalConfig` to `TestService_GitCommit_WorksWithPerCallAuthor` -- pass `authorName`/`authorEmail` per-call instead of relying on the deleted `ensureGitConfig` fallback
+- [x] Add new test: `TestService_GitCommit_PerCallAuthor` -- verifies per-call author name/email appear in commit
+- [x] Add new test: `TestService_GitCommit_InitTimeAuthor` -- verifies init-time author from `ServiceGitOptions`
+- [x] Add new test: `TestService_GitCommit_AuthorResolutionOrder` -- verifies per-call overrides init-time
+- [x] Add new test: `TestService_GitCommit_MissingAuthorError` -- verifies `CodeInvalidArgument` when no author config exists
+- [x] Add new test: `TestService_GitCommit_PartialAuthorError` -- verifies `CodeInvalidArgument` when only `author_name` or only `author_email` is provided
+- [x] Add new test: `TestService_GitDiff_NewFile` -- staged diff for a brand-new file (staged via `git add`, then `staged=true`)
+- [x] Add new test: `TestService_GitDiff_DeletedFile` -- diff for a deleted tracked file
+- [x] Add new test: `TestService_GitDiff_BinaryFile` -- binary file produces "Binary files differ" output
+- [x] Add new test: `TestService_GitDiff_FilePathTraversal` -- `file_path` set to `"../../../etc/passwd"` returns `CodePermissionDenied`
+- [x] Add or update test: `TestNewServiceWithGitAuth_ValidOptions` -- verify `ServiceGitOptions` with author fields populates service correctly
+- [x] Verify all tests pass: `go test ./...`
 
 ## Phase 10: Server Binary Author Config
 

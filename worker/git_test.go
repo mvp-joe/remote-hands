@@ -2,9 +2,11 @@ package worker
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -296,6 +298,7 @@ func TestService_GitDiff_StagedChanges(t *testing.T) {
 	assert.Contains(t, resp.Msg.Diff, "+staged change")
 }
 
+// Task 1: Updated to use FilePath instead of Path for file filtering.
 func TestService_GitDiff_SpecificFile(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -317,8 +320,8 @@ func TestService_GitDiff_SpecificFile(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "file1.txt"), []byte("modified1\n"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "file2.txt"), []byte("modified2\n"), 0644))
 
-	// Diff only file1.txt
-	req := connect.NewRequest(&remotehandsv1.GitDiffRequest{Path: "file1.txt", Staged: false})
+	// Diff only file1.txt using FilePath (Path now means repo path)
+	req := connect.NewRequest(&remotehandsv1.GitDiffRequest{Path: "", FilePath: "file1.txt", Staged: false})
 	resp, err := svc.GitDiff(ctx, req)
 	require.NoError(t, err)
 
@@ -354,6 +357,121 @@ func TestService_GitDiff_NotARepo(t *testing.T) {
 	assert.Equal(t, connect.CodeFailedPrecondition, connErr.Code())
 }
 
+// Task 11: New file diff (staged).
+func TestService_GitDiff_NewFile(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, homeDir := newTestService(t)
+	initGitRepo(t, homeDir)
+	createInitialCommit(t, homeDir)
+
+	// Create a new file and stage it
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "newfile.txt"), []byte("line1\nline2\n"), 0644))
+	cmd := exec.Command("git", "add", "newfile.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	req := connect.NewRequest(&remotehandsv1.GitDiffRequest{Staged: true})
+	resp, err := svc.GitDiff(ctx, req)
+	require.NoError(t, err)
+
+	assert.Contains(t, resp.Msg.Diff, "newfile.txt")
+	// All lines should be additions
+	for _, line := range strings.Split(resp.Msg.Diff, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "diff") || strings.HasPrefix(trimmed, "---") ||
+			strings.HasPrefix(trimmed, "+++") || strings.HasPrefix(trimmed, "@@") ||
+			strings.HasPrefix(trimmed, "index") || strings.HasPrefix(trimmed, "new file") {
+			continue
+		}
+		assert.True(t, strings.HasPrefix(line, "+"), "expected all content lines to be additions, got: %q", line)
+	}
+}
+
+// Task 12: Deleted file diff (unstaged).
+func TestService_GitDiff_DeletedFile(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, homeDir := newTestService(t)
+	initGitRepo(t, homeDir)
+	createInitialCommit(t, homeDir)
+
+	// Create and commit a file
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "todelete.txt"), []byte("line1\nline2\n"), 0644))
+	cmd := exec.Command("git", "add", "todelete.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "commit", "-m", "Add todelete.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Delete the file from filesystem
+	require.NoError(t, os.Remove(filepath.Join(homeDir, "todelete.txt")))
+
+	req := connect.NewRequest(&remotehandsv1.GitDiffRequest{Staged: false})
+	resp, err := svc.GitDiff(ctx, req)
+	require.NoError(t, err)
+
+	assert.Contains(t, resp.Msg.Diff, "todelete.txt")
+	// All content lines should be deletions
+	for _, line := range strings.Split(resp.Msg.Diff, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "diff") || strings.HasPrefix(trimmed, "---") ||
+			strings.HasPrefix(trimmed, "+++") || strings.HasPrefix(trimmed, "@@") ||
+			strings.HasPrefix(trimmed, "index") || strings.HasPrefix(trimmed, "deleted") {
+			continue
+		}
+		assert.True(t, strings.HasPrefix(line, "-"), "expected all content lines to be deletions, got: %q", line)
+	}
+}
+
+// Task 13: Binary file diff.
+func TestService_GitDiff_BinaryFile(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, homeDir := newTestService(t)
+	initGitRepo(t, homeDir)
+	createInitialCommit(t, homeDir)
+
+	// Create a file with binary content (null bytes), commit it
+	binaryContent := []byte("hello\x00world\x00binary")
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "binary.dat"), binaryContent, 0644))
+	cmd := exec.Command("git", "add", "binary.dat")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "commit", "-m", "Add binary file")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Modify the binary file
+	modifiedContent := []byte("modified\x00binary\x00data")
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "binary.dat"), modifiedContent, 0644))
+
+	req := connect.NewRequest(&remotehandsv1.GitDiffRequest{Staged: false})
+	resp, err := svc.GitDiff(ctx, req)
+	require.NoError(t, err)
+
+	assert.Contains(t, resp.Msg.Diff, "Binary files")
+}
+
+// Task 14: FilePath traversal.
+func TestService_GitDiff_FilePathTraversal(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, homeDir := newTestService(t)
+	initGitRepo(t, homeDir)
+
+	req := connect.NewRequest(&remotehandsv1.GitDiffRequest{
+		FilePath: "../../../etc/passwd",
+	})
+	_, err := svc.GitDiff(ctx, req)
+	require.Error(t, err)
+
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
+}
+
 // =============================================================================
 // GitCommit Tests
 // =============================================================================
@@ -372,7 +490,9 @@ func TestService_GitCommit_CommitsAllStaged(t *testing.T) {
 	require.NoError(t, cmd.Run())
 
 	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
-		Message: "Test commit",
+		Message:     "Test commit",
+		AuthorName:  "Test User",
+		AuthorEmail: "test@test.com",
 	})
 	resp, err := svc.GitCommit(ctx, req)
 	require.NoError(t, err)
@@ -402,8 +522,10 @@ func TestService_GitCommit_StagesAndCommitsFiles(t *testing.T) {
 
 	// Commit with specific files - should stage them first
 	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
-		Message: "Add specific files",
-		Files:   []string{"file1.txt", "file2.txt"},
+		Message:     "Add specific files",
+		Files:       []string{"file1.txt", "file2.txt"},
+		AuthorName:  "Test User",
+		AuthorEmail: "test@test.com",
 	})
 	resp, err := svc.GitCommit(ctx, req)
 	require.NoError(t, err)
@@ -432,8 +554,10 @@ func TestService_GitCommit_PartialStaging(t *testing.T) {
 
 	// Commit only one file
 	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
-		Message: "Partial commit",
-		Files:   []string{"include.txt"},
+		Message:     "Partial commit",
+		Files:       []string{"include.txt"},
+		AuthorName:  "Test User",
+		AuthorEmail: "test@test.com",
 	})
 	resp, err := svc.GitCommit(ctx, req)
 	require.NoError(t, err)
@@ -474,7 +598,9 @@ func TestService_GitCommit_NothingToCommit(t *testing.T) {
 	createInitialCommit(t, homeDir)
 
 	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
-		Message: "Empty commit",
+		Message:     "Empty commit",
+		AuthorName:  "Test User",
+		AuthorEmail: "test@test.com",
 	})
 	_, err := svc.GitCommit(ctx, req)
 	require.Error(t, err)
@@ -494,8 +620,10 @@ func TestService_GitCommit_NotARepo(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "file.txt"), []byte("content"), 0644))
 
 	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
-		Message: "Test",
-		Files:   []string{"file.txt"},
+		Message:     "Test",
+		Files:       []string{"file.txt"},
+		AuthorName:  "Test User",
+		AuthorEmail: "test@test.com",
 	})
 	_, err := svc.GitCommit(ctx, req)
 	require.Error(t, err)
@@ -505,14 +633,24 @@ func TestService_GitCommit_NotARepo(t *testing.T) {
 	require.ErrorAs(t, err, &connErr)
 }
 
-func TestService_GitCommit_WorksWithNoLocalConfig(t *testing.T) {
+// Task 5: Renamed from TestService_GitCommit_WorksWithNoLocalConfig.
+// Tests per-call author with no local git config.
+func TestService_GitCommit_WorksWithPerCallAuthor(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	svc, homeDir := newTestService(t)
 
 	// Initialize repo without configuring local user
-	// (global config may or may not exist, which is fine)
 	cmd := exec.Command("git", "init")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Create initial commit using inline config so we have a HEAD
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, ".gitkeep"), []byte(""), 0644))
+	cmd = exec.Command("git", "add", ".gitkeep")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "-c", "user.name=Setup", "-c", "user.email=setup@test.com", "commit", "-m", "Initial commit")
 	cmd.Dir = homeDir
 	require.NoError(t, cmd.Run())
 
@@ -522,21 +660,239 @@ func TestService_GitCommit_WorksWithNoLocalConfig(t *testing.T) {
 	cmd.Dir = homeDir
 	require.NoError(t, cmd.Run())
 
-	// GitCommit should succeed - either using existing global config
-	// or setting remotehands@local as fallback
+	// Commit with per-call author (no local git config)
 	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
-		Message: "First commit",
+		Message:     "First commit",
+		AuthorName:  "Per Call User",
+		AuthorEmail: "percall@test.com",
 	})
 	resp, err := svc.GitCommit(ctx, req)
 	require.NoError(t, err)
 	assert.Len(t, resp.Msg.CommitSha, 40)
 
-	// Verify the commit was actually created
-	cmd = exec.Command("git", "log", "--oneline", "-1")
+	// Verify the commit author
+	cmd = exec.Command("git", "log", "--format=%an %ae", "-1")
 	cmd.Dir = homeDir
 	output, err := cmd.Output()
 	require.NoError(t, err)
-	assert.Contains(t, string(output), "First commit")
+	assert.Contains(t, strings.TrimSpace(string(output)), "Per Call User percall@test.com")
+}
+
+// Task 6: Per-call author overrides repo config.
+func TestService_GitCommit_PerCallAuthor(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, homeDir := newTestService(t)
+	initGitRepo(t, homeDir)
+	createInitialCommit(t, homeDir)
+
+	// Create and stage a file
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "percall.txt"), []byte("content"), 0644))
+	cmd := exec.Command("git", "add", "percall.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
+		Message:     "Per-call author commit",
+		AuthorName:  "Call User",
+		AuthorEmail: "call@test.com",
+	})
+	resp, err := svc.GitCommit(ctx, req)
+	require.NoError(t, err)
+	assert.Len(t, resp.Msg.CommitSha, 40)
+
+	// Verify the commit author is the per-call author, not the repo config
+	cmd = exec.Command("git", "log", "--format=%an %ae", "-1")
+	cmd.Dir = homeDir
+	output, err := cmd.Output()
+	require.NoError(t, err)
+	assert.Equal(t, "Call User call@test.com", strings.TrimSpace(string(output)))
+}
+
+// Task 7: Init-time author via ServiceGitOptions.
+func TestService_GitCommit_InitTimeAuthor(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	homeDir := t.TempDir()
+	svc, err := NewServiceWithGitAuth(homeDir, nil, ServiceGitOptions{
+		AuthorName:  "Init User",
+		AuthorEmail: "init@test.com",
+	})
+	require.NoError(t, err)
+
+	// Init repo WITHOUT user config
+	cmd := exec.Command("git", "init")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Create initial commit using inline config
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, ".gitkeep"), []byte(""), 0644))
+	cmd = exec.Command("git", "add", ".gitkeep")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "-c", "user.name=Setup", "-c", "user.email=setup@test.com", "commit", "-m", "Initial commit")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Stage a file
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "inittime.txt"), []byte("content"), 0644))
+	cmd = exec.Command("git", "add", "inittime.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Commit WITHOUT per-call author fields
+	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
+		Message: "Init-time author commit",
+	})
+	resp, err := svc.GitCommit(ctx, req)
+	require.NoError(t, err)
+	assert.Len(t, resp.Msg.CommitSha, 40)
+
+	// Verify commit author is from init-time config
+	cmd = exec.Command("git", "log", "--format=%an %ae", "-1")
+	cmd.Dir = homeDir
+	output, err := cmd.Output()
+	require.NoError(t, err)
+	assert.Equal(t, "Init User init@test.com", strings.TrimSpace(string(output)))
+}
+
+// Task 8: Per-call author overrides init-time author.
+func TestService_GitCommit_AuthorResolutionOrder(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	homeDir := t.TempDir()
+	svc, err := NewServiceWithGitAuth(homeDir, nil, ServiceGitOptions{
+		AuthorName:  "Init",
+		AuthorEmail: "init@test.com",
+	})
+	require.NoError(t, err)
+
+	// Init repo and create initial commit
+	cmd := exec.Command("git", "init")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, ".gitkeep"), []byte(""), 0644))
+	cmd = exec.Command("git", "add", ".gitkeep")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "-c", "user.name=Setup", "-c", "user.email=setup@test.com", "commit", "-m", "Initial commit")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Stage a file
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "override.txt"), []byte("content"), 0644))
+	cmd = exec.Command("git", "add", "override.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Commit with per-call author that should override init-time
+	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
+		Message:     "Override author commit",
+		AuthorName:  "Override",
+		AuthorEmail: "override@test.com",
+	})
+	resp, err := svc.GitCommit(ctx, req)
+	require.NoError(t, err)
+	assert.Len(t, resp.Msg.CommitSha, 40)
+
+	// Verify per-call author wins
+	cmd = exec.Command("git", "log", "--format=%an %ae", "-1")
+	cmd.Dir = homeDir
+	output, err := cmd.Output()
+	require.NoError(t, err)
+	assert.Equal(t, "Override override@test.com", strings.TrimSpace(string(output)))
+}
+
+// Task 9: Missing author produces CodeInvalidArgument.
+// Cannot use t.Parallel() because we must override HOME to prevent go-git
+// from reading the host's global ~/.gitconfig (which may contain user.name/email).
+func TestService_GitCommit_MissingAuthorError(t *testing.T) {
+	// Override HOME so go-git's ConfigScoped(GlobalScope) won't find ~/.gitconfig.
+	isolatedHome := t.TempDir()
+	t.Setenv("HOME", isolatedHome)
+
+	ctx := context.Background()
+
+	homeDir := t.TempDir()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	svc, err := NewService(homeDir, logger)
+	require.NoError(t, err)
+
+	// Init repo WITHOUT user config
+	cmd := exec.Command("git", "init")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Create initial commit using inline config
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, ".gitkeep"), []byte(""), 0644))
+	cmd = exec.Command("git", "add", ".gitkeep")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "-c", "user.name=Setup", "-c", "user.email=setup@test.com", "commit", "-m", "Initial commit")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Stage a file
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "noauthor.txt"), []byte("content"), 0644))
+	cmd = exec.Command("git", "add", "noauthor.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	// Commit without any author
+	req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
+		Message: "No author commit",
+	})
+	_, err = svc.GitCommit(ctx, req)
+	require.Error(t, err)
+
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+}
+
+// Task 10: Partial author (name without email or vice versa) produces CodeInvalidArgument.
+func TestService_GitCommit_PartialAuthorError(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	svc, homeDir := newTestService(t)
+	initGitRepo(t, homeDir)
+	createInitialCommit(t, homeDir)
+
+	// Stage a file
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "partial.txt"), []byte("content"), 0644))
+	cmd := exec.Command("git", "add", "partial.txt")
+	cmd.Dir = homeDir
+	require.NoError(t, cmd.Run())
+
+	t.Run("NameWithoutEmail", func(t *testing.T) {
+		t.Parallel()
+		req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
+			Message:    "Partial author",
+			AuthorName: "Foo",
+		})
+		_, err := svc.GitCommit(ctx, req)
+		require.Error(t, err)
+
+		var connErr *connect.Error
+		require.ErrorAs(t, err, &connErr)
+		assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+	})
+
+	t.Run("EmailWithoutName", func(t *testing.T) {
+		t.Parallel()
+		req := connect.NewRequest(&remotehandsv1.GitCommitRequest{
+			Message:     "Partial author",
+			AuthorEmail: "foo@test.com",
+		})
+		_, err := svc.GitCommit(ctx, req)
+		require.Error(t, err)
+
+		var connErr *connect.Error
+		require.ErrorAs(t, err, &connErr)
+		assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+	})
 }
 
 // =============================================================================
@@ -559,6 +915,7 @@ func TestService_GitStatus_PathTraversal(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
+// Task 2: Path field now means repo path. This still tests repo path traversal.
 func TestService_GitDiff_PathTraversal(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -596,6 +953,23 @@ func TestService_GitCommit_FilePathTraversal(t *testing.T) {
 }
 
 // =============================================================================
+// NewServiceWithGitAuth Tests
+// =============================================================================
+
+// Task 15: Verify NewServiceWithGitAuth stores options correctly.
+func TestNewServiceWithGitAuth_ValidOptions(t *testing.T) {
+	t.Parallel()
+
+	svc, err := NewServiceWithGitAuth(t.TempDir(), nil, ServiceGitOptions{
+		AuthorName:  "Test",
+		AuthorEmail: "test@test.com",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "Test", svc.gitAuthorName)
+	assert.Equal(t, "test@test.com", svc.gitAuthorEmail)
+}
+
+// =============================================================================
 // Helpers
 // =============================================================================
 
@@ -610,7 +984,6 @@ func isHexString(s string) bool {
 	}
 	return true
 }
-
 
 // =============================================================================
 // GitClone / GitPush Tests (go-git)
@@ -706,4 +1079,3 @@ func TestGitPush_LocalRemote(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(output), "init")
 }
-
